@@ -366,11 +366,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpatialAnchorPlacer
   leftHandTransform: {fileID: 1473387226}
   rightHandTransform: {fileID: 1528065587}
+  leftHand: {fileID: 455554570}
+  rightHand: {fileID: 1657459179}
   floorSize: {x: 4, y: 4}
   wallSize: {x: 3, y: 2.5}
-  pinchThreshold: 0.7
-  pinchHoldTime: 1
-  placementCooldown: 1.5
+  holdTime: 1
+  cooldown: 1.5
+  gracePeriod: 0.3
 --- !u!1 &414077234
 GameObject:
   m_ObjectHideFlags: 0
@@ -715,10 +717,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GestureController
   avatarController: {fileID: 1415318932}
   rightHandTransform: {fileID: 1528065587}
+  rightHand: {fileID: 1657459179}
+  leftHand: {fileID: 455554570}
   moveDistance: 3
-  fistGripThreshold: 0.7
-  pointingThreshold: 0.3
-  gestureHoldTime: 0.5
+  holdTime: 0.5
+  moveCooldown: 1.5
 --- !u!1 &1117374322
 GameObject:
   m_ObjectHideFlags: 0

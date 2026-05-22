@@ -1,107 +1,137 @@
-using UnityEngine;
-using UnityEngine.XR;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
 /// Task 2 - Spatial Anchor Placer
-/// Uses Unity's built-in XR InputDevice system - no OVR types needed.
 ///
-/// SETUP INSTRUCTIONS:
-/// 1. Create an empty GameObject called "SpatialAnchorPlacer"
-/// 2. Attach this script to it
-/// 3. In the Inspector:
-///    - Drag left hand tracking GameObject into Left Hand Transform
-///    - Drag right hand tracking GameObject into Right Hand Transform
+/// PLACING ANCHORS:
+/// - LEFT pinch only (hold 1 sec)  = place FLOOR plane (blue)
+/// - RIGHT pinch only (hold 1 sec) = place WALL plane (orange)
 ///
-/// HOW TO PLACE ANCHORS AT RUNTIME:
-/// - PINCH LEFT HAND (hold 1 sec)  = Place FLOOR at hand height
-/// - PINCH RIGHT HAND (hold 1 sec) = Place WALL facing you
-/// - Right-click component ? "Clear All Anchors" to reset
-///
-/// SATISFIES TASK 2:
-/// - Spatial anchors of key surfaces (floor + walls)   [10 pts]
-/// - Quad GameObjects placed at anchor positions        [10 pts]
-/// - Box colliders block the avatar CharacterController [Task 4]
+/// FIX: Uses a grace period so brief accidental left pinch doesn't
+/// cancel the right pinch timer.
 /// </summary>
 public class SpatialAnchorPlacer : MonoBehaviour
 {
-    [Header("Hand Transforms")]
-    [Tooltip("Drag the LEFT hand tracking GameObject here (e.g. LeftHandAnchor)")]
+    [Header("Hand References")]
     [SerializeField] private Transform leftHandTransform;
-
-    [Tooltip("Drag the RIGHT hand tracking GameObject here (e.g. RightHandAnchor)")]
     [SerializeField] private Transform rightHandTransform;
+    [SerializeField] private OVRHand leftHand;
+    [SerializeField] private OVRHand rightHand;
 
     [Header("Plane Sizes")]
     [SerializeField] private Vector2 floorSize = new Vector2(4f, 4f);
     [SerializeField] private Vector2 wallSize = new Vector2(3f, 2.5f);
 
     [Header("Gesture Tuning")]
-    [Tooltip("Pinch/grip threshold to detect a pinch gesture (0-1)")]
-    [SerializeField] private float pinchThreshold = 0.7f;
+    [SerializeField] private float holdTime = 1.0f;
+    [SerializeField] private float cooldown = 1.5f;
 
-    [Tooltip("Seconds pinch must be held to place an anchor")]
-    [SerializeField] private float pinchHoldTime = 1.0f;
+    [Tooltip("How long the other hand can briefly pinch before cancelling (grace period)")]
+    [SerializeField] private float gracePeriod = 0.3f;
 
-    [Tooltip("Cooldown between placements")]
-    [SerializeField] private float placementCooldown = 1.5f;
-
-    // Timers and state
     private float leftPinchTimer = 0f;
     private float rightPinchTimer = 0f;
+    private float leftGraceTimer = 0f;
+    private float rightGraceTimer = 0f;
     private float lastPlacementTime = -999f;
     private bool leftPlacedThisGesture = false;
     private bool rightPlacedThisGesture = false;
 
-    // XR devices
-    private InputDevice leftDevice;
-    private InputDevice rightDevice;
-    private bool leftFound = false;
-    private bool rightFound = false;
-
-    // Anchor tracking
     private List<GameObject> placedAnchors = new List<GameObject>();
     private int anchorCount = 0;
 
+    void Start()
+    {
+        Debug.Log("[SpatialAnchorPlacer] Started!");
+    }
+
     void Update()
     {
-        if (!leftFound) TryFindLeftHand();
-        if (!rightFound) TryFindRightHand();
+        if (leftHand == null || rightHand == null) return;
 
-        HandleLeftHand();
-        HandleRightHand();
+        bool leftPinch = leftHand.GetFingerIsPinching(OVRHand.HandFinger.Index);
+        bool rightPinch = rightHand.GetFingerIsPinching(OVRHand.HandFinger.Index);
+
+        if (Time.frameCount % 60 == 0)
+            Debug.Log($"[SpatialAnchorPlacer] leftPinch={leftPinch}, rightPinch={rightPinch}");
+
+        // Grace period: if other hand briefly pinches, don't immediately cancel
+        // Left hand placement
+        if (leftPinch)
+        {
+            if (rightPinch)
+            {
+                // Right hand also pinching - count grace period
+                rightGraceTimer += Time.deltaTime;
+                if (rightGraceTimer < gracePeriod)
+                {
+                    // Still within grace - treat as left only
+                    HandleLeftPlacement(true);
+                }
+                else
+                {
+                    // Both pinching too long - it's a movement gesture, reset
+                    leftPinchTimer = 0f;
+                    leftPlacedThisGesture = false;
+                }
+            }
+            else
+            {
+                rightGraceTimer = 0f;
+                HandleLeftPlacement(true);
+            }
+        }
+        else
+        {
+            rightGraceTimer = 0f;
+            HandleLeftPlacement(false);
+        }
+
+        // Right hand placement
+        if (rightPinch)
+        {
+            if (leftPinch)
+            {
+                // Left hand also pinching - count grace period
+                leftGraceTimer += Time.deltaTime;
+                if (leftGraceTimer < gracePeriod)
+                {
+                    // Still within grace - treat as right only
+                    HandleRightPlacement(true);
+                }
+                else
+                {
+                    // Both pinching too long - it's a movement gesture, reset
+                    rightPinchTimer = 0f;
+                    rightPlacedThisGesture = false;
+                }
+            }
+            else
+            {
+                leftGraceTimer = 0f;
+                HandleRightPlacement(true);
+            }
+        }
+        else
+        {
+            leftGraceTimer = 0f;
+            HandleRightPlacement(false);
+        }
     }
 
-    private void TryFindLeftHand()
+    private void HandleLeftPlacement(bool active)
     {
-        var devices = new List<InputDevice>();
-        InputDevices.GetDevicesWithCharacteristics(
-            InputDeviceCharacteristics.Left | InputDeviceCharacteristics.HandTracking, devices);
-        if (devices.Count > 0) { leftDevice = devices[0]; leftFound = true; }
-    }
+        if (leftHandTransform == null) return;
 
-    private void TryFindRightHand()
-    {
-        var devices = new List<InputDevice>();
-        InputDevices.GetDevicesWithCharacteristics(
-            InputDeviceCharacteristics.Right | InputDeviceCharacteristics.HandTracking, devices);
-        if (devices.Count > 0) { rightDevice = devices[0]; rightFound = true; }
-    }
-
-    // ?? LEFT HAND: Place FLOOR ????????????????????????????????????????????????
-
-    private void HandleLeftHand()
-    {
-        if (!leftFound || leftHandTransform == null) return;
-
-        bool pinching = GetPinchValue(leftDevice) >= pinchThreshold;
-
-        if (pinching)
+        if (active)
         {
             leftPinchTimer += Time.deltaTime;
-            if (leftPinchTimer >= pinchHoldTime && !leftPlacedThisGesture)
+            Debug.Log($"[SpatialAnchorPlacer] Left pinch held {leftPinchTimer:F1}s");
+
+            if (leftPinchTimer >= holdTime && !leftPlacedThisGesture)
             {
-                if (Time.time - lastPlacementTime >= placementCooldown)
+                if (Time.time - lastPlacementTime >= cooldown)
                 {
                     PlaceFloorAnchor(leftHandTransform.position);
                     leftPlacedThisGesture = true;
@@ -116,20 +146,18 @@ public class SpatialAnchorPlacer : MonoBehaviour
         }
     }
 
-    // ?? RIGHT HAND: Place WALL ????????????????????????????????????????????????
-
-    private void HandleRightHand()
+    private void HandleRightPlacement(bool active)
     {
-        if (!rightFound || rightHandTransform == null) return;
+        if (rightHandTransform == null) return;
 
-        bool pinching = GetPinchValue(rightDevice) >= pinchThreshold;
-
-        if (pinching)
+        if (active)
         {
             rightPinchTimer += Time.deltaTime;
-            if (rightPinchTimer >= pinchHoldTime && !rightPlacedThisGesture)
+            Debug.Log($"[SpatialAnchorPlacer] Right pinch held {rightPinchTimer:F1}s");
+
+            if (rightPinchTimer >= holdTime && !rightPlacedThisGesture)
             {
-                if (Time.time - lastPlacementTime >= placementCooldown)
+                if (Time.time - lastPlacementTime >= cooldown)
                 {
                     PlaceWallAnchor(rightHandTransform.position);
                     rightPlacedThisGesture = true;
@@ -144,17 +172,6 @@ public class SpatialAnchorPlacer : MonoBehaviour
         }
     }
 
-    private float GetPinchValue(InputDevice device)
-    {
-        if (device.TryGetFeatureValue(CommonUsages.grip, out float grip))
-            return grip;
-        if (device.TryGetFeatureValue(CommonUsages.trigger, out float trigger))
-            return trigger;
-        return 0f;
-    }
-
-    // ?? PLACEMENT ?????????????????????????????????????????????????????????????
-
     private void PlaceFloorAnchor(Vector3 handPosition)
     {
         anchorCount++;
@@ -162,7 +179,7 @@ public class SpatialAnchorPlacer : MonoBehaviour
         floor.name = $"SpatialAnchor_Floor_{anchorCount}";
 
         Vector3 camForward = Camera.main.transform.forward;
-        camForward.y = 0;
+        camForward.y = 0f;
         camForward.Normalize();
 
         floor.transform.position = new Vector3(
@@ -173,8 +190,7 @@ public class SpatialAnchorPlacer : MonoBehaviour
         floor.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
         floor.transform.localScale = new Vector3(floorSize.x, floorSize.y, 1f);
 
-        ApplyTransparentMaterial(floor, new Color(0.2f, 0.5f, 1f, 0.25f));
-
+        ApplyURPMaterial(floor, new Color(0.2f, 0.5f, 1f, 0.4f));
         Destroy(floor.GetComponent<MeshCollider>());
         BoxCollider box = floor.AddComponent<BoxCollider>();
         box.size = new Vector3(1f, 0.02f, 1f);
@@ -196,12 +212,12 @@ public class SpatialAnchorPlacer : MonoBehaviour
         );
 
         Vector3 toCamera = Camera.main.transform.position - handPosition;
-        toCamera.y = 0;
+        toCamera.y = 0f;
+        if (toCamera.magnitude < 0.01f) toCamera = Vector3.forward;
         wall.transform.rotation = Quaternion.LookRotation(toCamera.normalized);
         wall.transform.localScale = new Vector3(wallSize.x, wallSize.y, 1f);
 
-        ApplyTransparentMaterial(wall, new Color(1f, 0.4f, 0.1f, 0.25f));
-
+        ApplyURPMaterial(wall, new Color(1f, 0.4f, 0.1f, 0.4f));
         Destroy(wall.GetComponent<MeshCollider>());
         BoxCollider box = wall.AddComponent<BoxCollider>();
         box.size = new Vector3(1f, 1f, 0.05f);
@@ -210,19 +226,35 @@ public class SpatialAnchorPlacer : MonoBehaviour
         Debug.Log($"[SpatialAnchorPlacer] Wall placed at {handPosition}");
     }
 
-    // ?? HELPERS ???????????????????????????????????????????????????????????????
-
-    private void ApplyTransparentMaterial(GameObject obj, Color color)
+    private void ApplyURPMaterial(GameObject obj, Color color)
     {
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = color;
-        mat.SetFloat("_Mode", 3);
-        mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        mat.SetInt("_ZWrite", 0);
-        mat.EnableKeyword("_ALPHABLEND_ON");
-        mat.renderQueue = 3000;
-        obj.GetComponent<Renderer>().material = mat;
+        Renderer rend = obj.GetComponent<Renderer>();
+        Material mat = null;
+
+        Shader urpShader = Shader.Find("Universal Render Pipeline/Lit");
+        if (urpShader != null)
+        {
+            mat = new Material(urpShader);
+            mat.color = color;
+            mat.SetFloat("_Surface", 1);
+            mat.SetFloat("_Blend", 0);
+            mat.SetFloat("_AlphaClip", 0);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.renderQueue = 3000;
+        }
+        else
+        {
+            mat = new Material(Shader.Find("Standard"));
+            mat.color = color;
+            mat.SetFloat("_Mode", 3);
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.renderQueue = 3000;
+        }
+
+        rend.material = mat;
     }
 
     [ContextMenu("Clear All Anchors")]
