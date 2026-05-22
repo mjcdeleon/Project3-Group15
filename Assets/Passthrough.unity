@@ -320,6 +320,57 @@ Transform:
   - {fileID: 1281387108}
   m_Father: {fileID: 1473387226}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &391877805
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 391877806}
+  - component: {fileID: 391877807}
+  m_Layer: 0
+  m_Name: SpatialAnchorPlacer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &391877806
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 391877805}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.02247, y: -0, z: -1.17216}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &391877807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 391877805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be67d6443f79a7a46a6cd4867764500b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpatialAnchorPlacer
+  leftHandTransform: {fileID: 1473387226}
+  rightHandTransform: {fileID: 1528065587}
+  floorSize: {x: 4, y: 4}
+  wallSize: {x: 3, y: 2.5}
+  pinchThreshold: 0.7
+  pinchHoldTime: 1
+  placementCooldown: 1.5
 --- !u!1 &414077234
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,6 +669,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 561655377}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &967114034
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 967114035}
+  - component: {fileID: 967114036}
+  m_Layer: 0
+  m_Name: GestureController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &967114035
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 967114034}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.022469997, y: 0, z: -1.1721601}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &967114036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 967114034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 333ce7607b717da46b7c91221d88bc46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GestureController
+  avatarController: {fileID: 1415318932}
+  rightHandTransform: {fileID: 1528065587}
+  moveDistance: 3
+  fistGripThreshold: 0.7
+  pointingThreshold: 0.3
+  gestureHoldTime: 0.5
 --- !u!1 &1117374322
 GameObject:
   m_ObjectHideFlags: 0
@@ -946,6 +1047,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e2ccea942ac46b743824aec690d73d4e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1415318931}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e2ccea942ac46b743824aec690d73d4e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1415318932}
   m_SourcePrefab: {fileID: 100100000, guid: e2ccea942ac46b743824aec690d73d4e, type: 3}
 --- !u!1 &1261945285
 GameObject:
@@ -1136,6 +1240,20 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1415318932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1415318928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7a0d9ca8220ba04392af847ff37d78d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::avatarController
+  moveSpeed: 1.5
+  rotationSpeed: 5
 --- !u!1 &1473387225
 GameObject:
   m_ObjectHideFlags: 0
@@ -1963,3 +2081,5 @@ SceneRoots:
   - {fileID: 2074053831}
   - {fileID: 1558264996}
   - {fileID: 1176585484}
+  - {fileID: 967114035}
+  - {fileID: 391877806}
