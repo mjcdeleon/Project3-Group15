@@ -48,7 +48,6 @@ public class avatarController : MonoBehaviour
         }
     }
 
-    // PUBLIC METHOD: This is the exact door your partner will knock on
     public void GoToLocation(Vector3 newDestination)
     {
         targetDestination = newDestination;
