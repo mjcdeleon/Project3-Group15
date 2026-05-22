@@ -34,7 +34,10 @@ public class avatarController : MonoBehaviour
                 transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
 
                 // 2. Move safely via physics (Automatically respects Task 2 walls!)
-                characterController.SimpleMove(direction * moveSpeed);
+                Vector3 motion = direction * moveSpeed * Time.deltaTime;
+                motion.y = 0f;
+                characterController.Move(motion);
+                transform.position = new Vector3(transform.position.x, -0.35f, transform.position.z);
             }
             else
             {
